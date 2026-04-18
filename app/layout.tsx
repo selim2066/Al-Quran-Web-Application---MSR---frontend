@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
+import { SettingsProvider } from "@/hooks/useSettings";
+import { ThemeProvider } from "next-themes";
 
 const geist = Geist({ subsets: ["latin"] });
 
@@ -16,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -29,9 +31,16 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${geist.className} min-h-screen bg-background`}>
-        <Navbar />
-        <main>{children}</main>
+      <body
+  className={`${geist.className} min-h-screen bg-background`}
+  suppressHydrationWarning
+>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <SettingsProvider>
+            <Navbar />
+            <main>{children}</main>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

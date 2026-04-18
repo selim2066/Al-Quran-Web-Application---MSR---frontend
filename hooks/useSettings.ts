@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 
 export type ArabicFont = "font-arabic-amiri" | "font-arabic-noto";
 
@@ -23,29 +23,32 @@ function loadSettings(): Settings {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
-  } catch {
-    // corrupted — fall through
-  }
+  } catch {}
   return DEFAULT_SETTINGS;
 }
 
-export function useSettings() {
-  const [settings, setSettings] = useState<Settings>(loadSettings);
+interface SettingsContextValue {
+  settings: Settings;
+  setArabicFont: (font: ArabicFont) => void;
+  setArabicSize: (size: number) => void;
+  setTranslationSize: (size: number) => void;
+  resetSettings: () => void;
+}
 
-  // useRef instead of useState — no re-render, no effect setState error
+const SettingsContext = createContext<SettingsContextValue | null>(null);
+
+export function SettingsProvider({ children }: { children: React.ReactNode }) {
+  const [settings, setSettings] = useState<Settings>(loadSettings);
   const isFirstRender = useRef(true);
 
-  // Save to localStorage on every settings change, skip first render
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      return; // don't save on initial load
+      return;
     }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      // storage unavailable
-    }
+    } catch {}
   }, [settings]);
 
   const setArabicFont = (font: ArabicFont) =>
@@ -61,16 +64,26 @@ export function useSettings() {
     setSettings(DEFAULT_SETTINGS);
     try {
       localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
-  return {
+  const value: SettingsContextValue = {
     settings,
     setArabicFont,
     setArabicSize,
     setTranslationSize,
     resetSettings,
   };
+
+return React.createElement(
+  SettingsContext.Provider,
+  { value: value },
+  children
+);
+}
+
+export function useSettings() {
+  const ctx = useContext(SettingsContext);
+  if (!ctx) throw new Error("useSettings must be used inside SettingsProvider");
+  return ctx;
 }
